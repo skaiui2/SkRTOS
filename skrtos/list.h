@@ -3,6 +3,7 @@
 
 #include<stddef.h>
 #include "class.h"
+#include "kernel.h"
 
 
 implement(Task);
@@ -21,9 +22,10 @@ Class(list_node)
 Class(thelist)
 {
     int count;
+
     list_node *head;
     list_node *tail;
-}
+};
 
 
 

@@ -11,6 +11,6 @@
 
 #define aligment_byte 0x07
 
-
+#define helpValue_MAX              ( ~( ( size_t ) 0 ) )
 
 #endif

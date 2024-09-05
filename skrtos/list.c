@@ -1,21 +1,27 @@
 #include "list.h"
 
 
-void qiucksort(list_node* firstnode)
+Class(tlistTCB)
 {
 
-}
+    void (*creat)(list_node* task_list);
+    void (*add)(list_node *newnode);
+    void (*remove)(list_node *rmnode);
+};
+
 
 
 void listInit(thelist *xlist)
 {
+    
     xlist->count = 0;
     xlist->head = NULL;
     xlist->tail = NULL;
+    
 }
 
 
-void list_insertfirst(thelist *xlist, list_node *newnode)
+void Insertfirst(thelist *xlist, list_node *newnode)
 {
     xlist->count += 1;
     xlist->head = newnode;
@@ -23,26 +29,253 @@ void list_insertfirst(thelist *xlist, list_node *newnode)
     newnode->prev = xlist;
     newnode->next = xlist;
 
+}
 
+
+void Inserthead(thelist *xlist, list_node *newnode)
+{
+    newnode->prev = (list_node*)xlist;
+    newnode->next = xlist->head;
+
+    xlist->head->prev = newnode;
+
+    xlist->head = newnode;
+
+    xlist->count +=1;
+}
+
+void Inserttail(thelist *xlist, list_node *newnode)
+{
+    newnode->prev = xlist->tail;
+    newnode->next = xlist;
+
+    xlist->tail->next = newnode;
+
+    xlist->tail = newnode;
+
+    xlist->count +=1;
+     
+ 
+}
+
+
+void Insertmiddle(thelist *xlist, list_node *newnode)
+{
+    list_node *findhelp;
+
+    for(findhelp = xlist->head;findhelp->next->value <= newnode->value; findhelp = findhelp->next)
+    {
+        //finding...
+    }
+
+    newnode->prev = findhelp;
+    newnode->next = findhelp->next;
+
+    findhelp->next->prev = newnode;
+
+    findhelp->next = newnode;
+
+    xlist->count +=1;
 
 }
 
 
+uint8_t control(thelist *xlist , list_node *newnode)
+{
+
+    uint8_t rt = 0;
+    
+    if(xlist ->count== 0)       return rt;
+    rt +=1;
+
+    if( newnode->value <= xlist->head->value)   return rt;
+    rt += 1;
+
+    if( newnode->value > xlist->tail->value)    return rt;
+    rt += 1;
+
+    if(( newnode->value > xlist->head->value  ) && (newnode->value < xlist->tail->value) )  return rt;
+
+}
+
+
+void dataflow(uint8_t rt,thelist *xlist, list_node *newnode)
+{
+    void (*listInsert[])(thelist *xlist, list_node *newnode) = {
+        Insertfirst,    
+        Inserthead,    
+        Insertmiddle,
+        Inserttail
+    };
+    listInsert[rt](xlist, newnode);
+
+}
+
+
+
+/*for same priority task,the task that hava minster usetime ,it will be excute early.greedy algorithm!
+
+*/
 void list_add(thelist *xlist, list_node *newnode)
 {
+    
+    uint8_t op = control(xlist,newnode);
+    dataflow(op,xlist, newnode);
+
+
+/*
     if(xlist ->count== 0)
     {
-        list_insertfirst(xlist,newnode);
+        Insertfirst(xlist,newnode);
+
+        return;
     }
+*/   
+    /*
+    if( newnode->value <= xlist->head->value)
+    {
+        newnode->prev = (list_node*)xlist;
+        newnode->next = xlist->head;
+
+        xlist->head->prev = newnode;
+
+        xlist->head = newnode;
+
+        xlist->count +=1;
+        return;
+
+    }   
+    */
+
+/*
+    if( newnode->value > xlist->tail->value)
+    {
+        
+        newnode->prev = xlist->tail;
+        newnode->next = xlist;
+
+        xlist->tail->next = newnode;
+
+        xlist->tail = newnode;
+
+        xlist->count +=1;
+        return;
+    }    
+*/
+
+    /*
+    if(( newnode->value > xlist->head->value  ) && (newnode->value < xlist->tail->value) )
+    {
+
+
+    for(findhelp = xlist->head;findhelp->next->value <= newnode->value; findhelp = findhelp->next)
+    {
+        //finding...
+    }
+
+
+    newnode->prev = findhelp;
+    newnode->next = findhelp->next;
+
+    findhelp->next->prev = newnode;
+
+    findhelp->next = newnode;
+
     xlist->count +=1;
 
-    newnode->prev = xlist->tail;
-    newnode->next = xlist;
-    qiucksort(xlist->head);
+    }
+    */
+
+
+}
     
 
 
 
+
+
+void list_remove(thelist *xlist, list_node *rmnode)
+{
+    rmnode->prev->next = rmnode->next;
+
+    if(rmnode != xlist->tail)
+    {
+        rmnode->next->prev = rmnode->prev;
+    }
+    else
+    {
+        xlist->tail = rmnode->prev;
+    }
+
+    xlist->count -=1;
+
 }
+
+
+
+static thelist Readytasklist[ config_max_priori ];
+
+
+list_node newreadynode0;
+list_node newreadynode1;
+list_node newreadynode2;
+list_node newreadynode3;
+list_node newreadynode4;
+list_node newreadynode5;
+
+
+void Ctask_list()
+{
+    newreadynode0.value = 3;
+    newreadynode1.value = 4;    
+    newreadynode2.value = 2;
+    newreadynode3.value = 8;
+    newreadynode4.value = 7;    
+    newreadynode5.value = 5;
+
+    for(int i=0;i<config_max_priori;i++)
+    {
+        listInit(&Readytasklist[i]);
+    }
+
+    
+    list_add(&Readytasklist[0],&newreadynode0);
+    list_add(&Readytasklist[0],&newreadynode1);
+    list_add(&Readytasklist[0],&newreadynode2);
+    list_add(&Readytasklist[0],&newreadynode3);
+    list_add(&Readytasklist[0],&newreadynode4);
+    list_add(&Readytasklist[0],&newreadynode5);
+
+    list_remove(&Readytasklist[0],&newreadynode3);
+    list_remove(&Readytasklist[0],&newreadynode5);
+
+    
+    
+
+    printf("node is :%d\n ",(&Readytasklist[0])->head->value);
+    printf("node is :%d\n ",(&Readytasklist[0])->head->next->value);
+    printf("node is :%d\n ",(&Readytasklist[0])->head->next->next->value);
+    thelist *xlist = (&Readytasklist[0])->head->next->next->next->next;
+    printf("xlist is :%d\n ",xlist->head->value);
+    printf("xlist is :%d\n ",xlist->head->next->value);
+    printf("xlist is :%d\n ",xlist->head->next->next->value);
+}
+
+
+int main()
+{
+    
+    Ctask_list();
+    //printf("the:%d\n",(&Readytasklist[0])->count);
+
+    return 0;
+}
+
+
+
+
+
+
+
 
 

@@ -126,7 +126,6 @@ void heap_init()
     theheap.head.blocksize = (size_t)0;
 
     end_heap  = ( start_heap + (uint32_t)config_heap);
-    
 
 
     /*byte aligment*/
@@ -144,7 +143,9 @@ void heap_init()
 
     firstnode = (heap_node*)start_heap;
     firstnode->next = theheap.tail;
+
     firstnode->blocksize = theheap.allsize;
+
 
 }
 
@@ -369,5 +370,11 @@ static void InsertFreeBlock(heap_node* xInsertBlock)
     }
 
 #endif
+}
+
+
+int main()
+{
+    void *a =heap_malloc(sizeof(int));
 }
 

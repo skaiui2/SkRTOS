@@ -1,13 +1,13 @@
 #include "list.h"
 
 
-Class(tlistTCB)
+void oper_Init(list_operation *ope)
 {
+     ope->Init = (void *)listInit;
+     ope->add  = (void *)list_add;
+     ope->remove =(void *) list_remove;
 
-    void (*creat)(list_node* task_list);
-    void (*add)(list_node *newnode);
-    void (*remove)(list_node *rmnode);
-};
+}
 
 
 
@@ -79,6 +79,9 @@ void Insertmiddle(thelist *xlist, list_node *newnode)
 
 }
 
+/* use the table to record all condition,separate the judgment conditions (like if else)  and excution
+
+*/
 
 uint8_t control(thelist *xlist , list_node *newnode)
 {
@@ -86,7 +89,7 @@ uint8_t control(thelist *xlist , list_node *newnode)
     uint8_t rt = 0;
     
     if(xlist ->count== 0)       return rt;
-    rt +=1;
+    rt += 1;
 
     if( newnode->value <= xlist->head->value)   return rt;
     rt += 1;
@@ -213,6 +216,14 @@ void list_remove(thelist *xlist, list_node *rmnode)
 
 
 
+
+/*
+*
+*
+here is test
+****
+*/
+
 static thelist Readytasklist[ config_max_priori ];
 
 
@@ -224,48 +235,19 @@ list_node newreadynode4;
 list_node newreadynode5;
 
 
-void Ctask_list()
-{
-    newreadynode0.value = 3;
-    newreadynode1.value = 4;    
-    newreadynode2.value = 2;
-    newreadynode3.value = 8;
-    newreadynode4.value = 7;    
-    newreadynode5.value = 5;
-
-    for(int i=0;i<config_max_priori;i++)
-    {
-        listInit(&Readytasklist[i]);
-    }
-
-    
-    list_add(&Readytasklist[0],&newreadynode0);
-    list_add(&Readytasklist[0],&newreadynode1);
-    list_add(&Readytasklist[0],&newreadynode2);
-    list_add(&Readytasklist[0],&newreadynode3);
-    list_add(&Readytasklist[0],&newreadynode4);
-    list_add(&Readytasklist[0],&newreadynode5);
-
-    list_remove(&Readytasklist[0],&newreadynode3);
-    list_remove(&Readytasklist[0],&newreadynode5);
-
-    
-    
-
-    printf("node is :%d\n ",(&Readytasklist[0])->head->value);
-    printf("node is :%d\n ",(&Readytasklist[0])->head->next->value);
-    printf("node is :%d\n ",(&Readytasklist[0])->head->next->next->value);
-    thelist *xlist = (&Readytasklist[0])->head->next->next->next->next;
-    printf("xlist is :%d\n ",xlist->head->value);
-    printf("xlist is :%d\n ",xlist->head->next->value);
-    printf("xlist is :%d\n ",xlist->head->next->next->value);
-}
 
 
 int main()
 {
+    list_operation ope;
+    oper_Init(&ope);
+    newreadynode0.value = 3;
+
+
+    listInit(&Readytasklist[0]);
+    ope.add(&Readytasklist[0],&newreadynode0);
+
     
-    Ctask_list();
     //printf("the:%d\n",(&Readytasklist[0])->count);
 
     return 0;

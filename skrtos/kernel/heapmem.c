@@ -373,8 +373,12 @@ static void InsertFreeBlock(heap_node* xInsertBlock)
 }
 
 
+/*
+
 int main()
 {
     void *a =heap_malloc(sizeof(int));
 }
 
+
+*/

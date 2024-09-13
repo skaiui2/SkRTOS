@@ -9,7 +9,7 @@
 #define config_error_func_more     0
 
 
-#define config_max_priori  2
+#define config_max_priori  4
 
 
 

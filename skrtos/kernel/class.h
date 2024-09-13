@@ -7,7 +7,7 @@ typedef struct  class  class;\
 struct class 
 
 
-#define implement(task)  typedef int (*task)(int)
+#define implement(task)  typedef void (*task)(int)
 
 
 #endif

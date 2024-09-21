@@ -1,13 +1,6 @@
 #include "list.h"
 
 
-void oper_Init(list_operation *ope)
-{
-     ope->Init = (void *)listInit;
-     ope->add  = (void *)list_add;
-     ope->remove =(void *) list_remove;
-
-}
 
 
 
@@ -125,71 +118,6 @@ void list_add(thelist *xlist, list_node *newnode)
     uint8_t op = control(xlist,newnode);
     dataflow(op,xlist, newnode);
 
-
-/*
-    if(xlist ->count== 0)
-    {
-        Insertfirst(xlist,newnode);
-
-        return;
-    }
-*/   
-    /*
-    if( newnode->value <= xlist->head->value)
-    {
-        newnode->prev = (list_node*)xlist;
-        newnode->next = xlist->head;
-
-        xlist->head->prev = newnode;
-
-        xlist->head = newnode;
-
-        xlist->count +=1;
-        return;
-
-    }   
-    */
-
-/*
-    if( newnode->value > xlist->tail->value)
-    {
-        
-        newnode->prev = xlist->tail;
-        newnode->next = xlist;
-
-        xlist->tail->next = newnode;
-
-        xlist->tail = newnode;
-
-        xlist->count +=1;
-        return;
-    }    
-*/
-
-    /*
-    if(( newnode->value > xlist->head->value  ) && (newnode->value < xlist->tail->value) )
-    {
-
-
-    for(findhelp = xlist->head;findhelp->next->value <= newnode->value; findhelp = findhelp->next)
-    {
-        //finding...
-    }
-
-
-    newnode->prev = findhelp;
-    newnode->next = findhelp->next;
-
-    findhelp->next->prev = newnode;
-
-    findhelp->next = newnode;
-
-    xlist->count +=1;
-
-    }
-    */
-
-
 }
     
 
@@ -214,15 +142,16 @@ void list_remove(thelist *xlist, list_node *rmnode)
 
 }
 
+void oper_Init(list_operation *ope)
+{
+    ope->Init = (void *)listInit;
+    ope->add  = (void *)list_add;
+    ope->remove =(void *) list_remove;
+
+}
 
 
 
-/*
-*
-*
-here is test
-****
-*/
 
 static thelist Readytasklist[ config_max_priori ];
 

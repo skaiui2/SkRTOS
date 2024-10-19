@@ -1,12 +1,29 @@
 #ifndef LIST_H
 #define LIST_H
 
-#include<stddef.h>
 #include "class.h"
-#include "kernel.h"
+#include "config.h"
 
 
-implement(Task);
+
+/*this is public*/
+Class(list_node)
+{
+    uint32_t value;
+    list_node* prev;
+    list_node* next;
+    
+};
+
+Class(thelist)
+{
+    uint8_t count;
+    uint8_t SwitchFlag;
+    list_node *head;
+    list_node *tail;
+    list_node *SaveNode;
+};
+
 
 
 Class(list_operation)
@@ -21,7 +38,15 @@ Class(list_operation)
 Class(Readylist)
 {
     thelist Readylists[ config_max_priori ];
-    operation *ope;
+    list_operation *ope;
+
+};
+
+
+Class(Delaylist)
+{
+    thelist xlist;
+    list_operation *ope;
 
 };
 
@@ -29,37 +54,26 @@ Class(Readylist)
 Class(Suspendlist)
 {
     thelist xlist;
-    operation *ope;
+    list_operation *ope;
 
 };
 
 Class(Blocklist)
 {
     thelist xlist;
-    operation *ope;
+    list_operation *ope;
 
 };
 
+#define ListNodeNumber( list_struct ) \
+            (uint32_t)list_struct->count
 
+void oper_Creat(list_operation *ope);
 
-/*this is public*/
-Class(list_node)
-{
-    Task   task;
-    int value;
-    list_node* prev;
+void listInit(thelist *xlist);
+void list_add(thelist *xlist, list_node *newnode);
+void list_remove(thelist *xlist, list_node *rmnode);
 
-    list_node* next;
-    
-};
-
-Class(thelist)
-{
-    int count;
-
-    list_node *head;
-    list_node *tail;
-};
 
 
 

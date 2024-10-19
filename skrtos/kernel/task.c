@@ -1,37 +1,364 @@
 
-#include "task.h"
-#include "list.h"
+#include"task.h"
+#include "heapmem.h"
+#include <stdint.h>
+#include <stddef.h>
+#include "port.h"
+
+
+Error_help(task)
+
+uint32_t ReadyBitTable = 0;
+
+Readylist TReadylist;
+
+
+Delaylist OneDelaylist;
+Delaylist TwoDelaylist;
+thelist *WakeTicksTable;
+thelist *OverWakeTicksTable;
+uint32_t MaxTicks =  ~(uint32_t)0;
+uint32_t  NextTicks = ~(uint32_t)0;
+
+
+Suspendlist TSuspendlist;
+Blocklist TBlocklist;
 
 
 
+__attribute__((used)) TCB_struct * volatile CurrentTCB = NULL;
+static volatile uint32_t xTickCountMAX = ( uint32_t ) 0xffffffffUL;
+static volatile uint32_t NowTickCount = ( uint32_t ) 0;
+
+extern TCB_struct *tcbTask1;
+extern TCB_struct *tcbTask2;
 
 
 
-uint32_t *TaskInit(
-
-
-                    )
+void ReadylistInit( void )
 {
-    TCB_Init();
-    StackInit();
+    uint32_t i = config_max_priori - 1;
+    while( i != 0)
+    {
+        listInit(&(TReadylist.Readylists[i]));
+        i--;
+    }
+
+}
+
+
+void ALLlistInit( void )
+{
     ReadylistInit();
 
+    listInit( &( OneDelaylist.xlist) );
+    listInit( &( TwoDelaylist.xlist) );
+    WakeTicksTable = &( OneDelaylist.xlist );
+    OverWakeTicksTable = &( TwoDelaylist.xlist );
+
+    listInit( &TSuspendlist.xlist );
+    listInit( &TBlocklist.xlist );
+
+}
+
+
+
+void ReadyListAdd( TCB_struct *self )
+{
+    ReadyBitTable |= ( 1UL << ( self->priority));
+    self->tasknode.value = self->TimeSlice;
+    list_add( &(TReadylist.Readylists[self->priority]), &(self->tasknode) );
+    TReadylist.Readylists[self->priority].SwitchFlag = TReadylist.Readylists[self->priority].head->value;
+}
+
+
+void ReadyListRemove( TCB_struct *self )
+{
+    list_remove( &(TReadylist.Readylists[self->priority]), &(self->tasknode) );
+
+    if( (TReadylist.Readylists[self->priority].count ) == 0)
+    {
+        ReadyBitTable &= ~(1 << (self->priority));
+    }
 
 }
 
 
 
 
-uint32_t *TaskCreat(  Taskfunction function_t,
-                        const char *const task_name,
-                        uint32_t *const Startstack,
-                        const   uint32_t Stack_size,
-                        TCB_struct *self
-                        )
+void DelaylistAdd( TCB_struct *self)
+{
+    const uint32_t constTicks = NowTickCount;
+    uint32_t wakeTime = constTicks + self->tasknode.value;
+    self->tasknode.value = wakeTime;
+
+    if( wakeTime < constTicks)
+    {
+        list_add( OverWakeTicksTable , &(self->tasknode) );
+    }
+    else{
+        list_add( WakeTicksTable , &(self->tasknode) );
+        // i can find the max ticks by xlist->head
+    }
+    if( wakeTime < NextTicks )
+    {
+        NextTicks = wakeTime;
+    }
+
+}
+
+
+
+
+void DelaylistRemove( TCB_struct *self)
 {
 
+    list_remove( WakeTicksTable, &(self->tasknode) );
 
 }
+
+
+
+
+void SuspendlistAdd( thelist *xlist , list_node *node)
+{
+    list_add( xlist , node);
+}
+
+
+
+void BlocklistAdd( thelist *xlist , list_node *node , TCB_struct *self)
+{
+    list_add( xlist , node);
+}
+
+
+
+
+
+void leisureTask( void )
+{
+    while (1)
+    {
+        uint32_t cnt = 0;
+        cnt++;
+    }
+
+}
+
+void *leisure_handle;
+void lei_taskInit( void )
+{
+    TCB_struct *self;
+    leisure_handle = TaskCreat( (Taskfunction)leisureTask,
+                                      256,
+                                      0,
+                                      0,
+                                      NULL,
+                                      &self
+    );
+
+    ReadyListAdd( self );
+
+
+}
+
+
+
+
+
+
+
+void *Stack_init(    Taskfunction function_t,
+                        uint32_t *pStack,
+                        uint32_t *tStack,
+                        const   uint32_t Stack_size,
+                        TCB_struct **self
+                    )
+{
+    uint32_t *topStack;
+    void *pxreturn = NULL;
+    
+    topStack = ( uint32_t *) heap_malloc( ( ( ( size_t ) Stack_size ) * sizeof( uint32_t * ) ) );
+    *pStack = (uint32_t)topStack;
+    topStack = (uint32_t *)( (uint32_t)topStack + (Stack_size - (uint32_t)1) );
+    topStack = ( uint32_t *) (((uint32_t)topStack) & (~((uint32_t) aligment_byte)));
+    pxreturn = Init_Stack(topStack,self,function_t);
+
+#ifndef config_error_print
+
+#else
+
+    if(pxreturn == NULL)
+    {
+        task_Error();
+    }
+
+#endif
+    *tStack = (uint32_t)pxreturn;
+
+    return pxreturn;
+    
+}
+
+
+TCB_struct *TCB_init(     Taskfunction function_t,
+                        uint32_t *pStack,
+                        uint32_t *tStack,
+                        uint8_t priority,
+                        uint8_t TimeSlice,
+                        TCB_struct **self
+                    )
+{
+    (*self) = (TCB_struct *)heap_malloc(sizeof(TCB_struct));
+
+    (*self)->function_t = function_t;
+    (*self)->topStack  = (uint32_t *) *tStack;
+    (*self)->startStack = (uint32_t *)*pStack;
+    (*self)->priority = priority;
+    (*self)->TimeSlice = TimeSlice;
+
+
+    return *self;
+
+}
+
+
+extern uint32_t count;
+
+
+__attribute__( ( always_inline ) ) static inline uint8_t FindHighestPriority( void )
+{
+    uint8_t TopZeroNumber;
+    __asm volatile
+            (
+            "clz %0, %1\n"
+            "mov r3, #31\n"
+            "sub %0, r3, %0\n"
+            :"=r" (TopZeroNumber)
+            :"r" (ReadyBitTable)
+            :"r3"
+            );
+    return TopZeroNumber;
+}
+
+
+
+void __attribute__((always_inline)) vTaskSwitchContext( void )
+{
+    uint8_t Index= FindHighestPriority(); //debug by 'print Index'
+    thelist *TopPrioritiesList = &( TReadylist.Readylists[Index] );
+    if( TopPrioritiesList->SwitchFlag > 0)
+    {
+        TopPrioritiesList->SwitchFlag -= 1;
+    }
+
+    if( (TopPrioritiesList->SwitchFlag) == 0)
+    {
+        TopPrioritiesList->SaveNode = TopPrioritiesList->SaveNode->next;
+        TopPrioritiesList->SwitchFlag = TopPrioritiesList->SaveNode->value;
+    }
+
+    CurrentTCB = container_of(TopPrioritiesList->SaveNode,TCB_struct,tasknode);
+}
+
+
+
+
+
+
+void *TaskCreat(  Taskfunction function_t,
+                  const   uint16_t Stack_size,
+                  uint8_t priority,
+        /*if you use TimeSlice for same priority,don't use TaskDelay,that will make timeslice useless because of
+         the deletion of Readytasklist.I can't image a TaskDelay in task  be executing  twice.Do you think it can be done?  */
+                  uint8_t TimeSlice,
+                  void * const pvParameters,
+                  TaskHandle * const self
+                  )
+{
+    //to change the value of pStack and  tStack,so malloc memory!
+    uint32_t *pStack = heap_malloc(sizeof (uint32_t *));
+    uint32_t *tStack = heap_malloc(sizeof (uint32_t *));
+
+    //the growth is up to down!
+    uint32_t    *task_leisure = Stack_init( function_t ,pStack,tStack,Stack_size,self );
+    TCB_struct  *NewTcb = TCB_init(  function_t, pStack, tStack, priority ,TimeSlice ,self);
+
+    //free memory!
+    heap_free(pStack);
+    heap_free(tStack);
+
+    *self = NewTcb;
+    CurrentTCB = *self;
+
+    ReadyListAdd(*self);
+
+    return NewTcb;
+}
+
+
+void TaskDelay( const uint16_t TicksDelay )
+{
+     TCB_struct  *NowTCB;
+     NowTCB = CurrentTCB;
+     NowTCB->tasknode.value = TicksDelay;
+     ReadyListRemove( NowTCB );
+     DelaylistAdd( NowTCB );
+
+     contextSwitchTriger();
+}
+
+
+void TaskDelayTimeCheck( void )
+{
+    list_node *listnode,*nextnode,*tailnode;
+    TCB_struct *self;
+    uint32_t UpdateTickCount;
+
+    UpdateTickCount = NowTickCount + 1;
+    NowTickCount = UpdateTickCount;
+
+    if( UpdateTickCount == ( uint32_t) 0UL)
+    {
+        thelist *temp;
+        temp = WakeTicksTable;
+        WakeTicksTable = OverWakeTicksTable;
+        OverWakeTicksTable = temp;
+    }
+
+    listnode = WakeTicksTable->head;
+    if(  listnode == NULL )
+    {
+        NextTicks = MaxTicks;
+        contextSwitchTriger();
+        return;
+    }
+
+    if( ( UpdateTickCount >= NextTicks ) )
+    {
+        while( listnode->value <= UpdateTickCount )
+        {
+            nextnode = listnode->next;
+            self = container_of( listnode,TCB_struct,tasknode);
+            tailnode = WakeTicksTable->tail;
+            DelaylistRemove(self);
+            ReadyListAdd(self);
+
+            if( listnode != tailnode )
+            {
+                listnode = nextnode;
+            }
+            else{
+                break;
+            }
+        }
+    }
+
+    contextSwitchTriger();
+}
+
+
 
 
 

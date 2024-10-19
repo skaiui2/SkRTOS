@@ -1,7 +1,6 @@
 
-
-#include "kernel.h"
 #include "event.h"
+#include <stdint.h>
 
 
 uint8_t event_creat()

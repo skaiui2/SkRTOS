@@ -1,10 +1,10 @@
 #ifndef SIGNAL_H
 #define SIGNAL_H
-#include"kernel.h"
+#include"config.h"
 #include"list.h"
+#include <stdint.h>
 
 
-typedef uint8_t (*signal_function)(signal_struct **self);
 
 Class(signal_struct)
 {
@@ -13,6 +13,13 @@ Class(signal_struct)
     list_node pendingtask;
     
 };
+
+typedef uint8_t (*signal_function)(signal_struct **self);
+
+
+
+
+
 
 Class(signal_impl)
 {

@@ -1,6 +1,9 @@
-#include "heapmem.h"
-#include "kernel.h"
 
+#include "heapmem.h"
+#include<stdint.h>
+#include<stdio.h>
+#include<stdlib.h>
+#include "config.h"
 
 
 

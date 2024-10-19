@@ -3,7 +3,6 @@
 #ifndef MUTEX_H
 #define MUTEX_H
 
-#include "kernel.h"
 #include "signal.h"
 #include "list.h"
 

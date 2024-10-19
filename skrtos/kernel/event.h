@@ -2,7 +2,6 @@
 #ifndef EVENT_H
 #define EVENT_H
 
-#include "kernel.h"
 #include "signal.h"
 #include "list.h"
 

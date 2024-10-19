@@ -1,5 +1,9 @@
 #include "mempool.h"
-#include "kernel.h"
+#include <stddef.h>
+#include <stdint.h>
+#include "config.h"
+
+
 
 
 
@@ -40,13 +44,13 @@ void mempool_init(poolhead *thepool,void* arraystart,uint32_t allsize)
 
     //end_heap  = start_heap + (uint32_t)700 ;
 
-    printf("end_heap:%d\n",end_heap);
+    //printf("end_heap:%d\n",end_heap);
     
     if( (end_heap & aligment_byte) != 0){
         end_heap += aligment_byte ;
         end_heap &= ~aligment_byte;
     }
-    printf("end_heap:%d\n",end_heap);
+    //printf("end_heap:%d\n",end_heap);
     
     thepool->tail = (poolnode*)6296448;
     //thepool->tail = (poolnode*)6296248;
@@ -142,7 +146,8 @@ void *mempool_apl(poolhead *thepool)
 void mempool_free(void *xret)
 {
     poolnode *FreeBlock;
-    void *xFree = (void*)xret - (void*)heapstructSize;
+    void *xFree ;
+    xFree = (void*)( xret - (void*)heapstructSize);
     
     FreeBlock = (void*)xFree;
 

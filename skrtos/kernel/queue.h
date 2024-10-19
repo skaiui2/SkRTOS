@@ -1,7 +1,6 @@
 #ifndef QUEUE_H
 #define QUEUE_H
 
-#include "kernel.h"
 #include "list.h"
 #include "signal.h"
 

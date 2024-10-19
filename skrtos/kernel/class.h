@@ -1,10 +1,16 @@
-#include "malloc.h"
 #ifndef CLASS_H
 #define CLASS_H
+#include <stddef.h>  // for offsetof
 
 #define Class(class)    \
 typedef struct  class  class;\
 struct class 
+
+//get father struct address
+//how to use it:struct parent *parent_ptr = container_of(child_ptr, struct parent, child)
+#define container_of(ptr, type, member) \
+    ((type *)((char *)(ptr) - offsetof(type, member)))
+
 
 
 #define implement(task)  typedef void (*task)(int)

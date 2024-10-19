@@ -1,24 +1,28 @@
 #ifndef TASK_H
 #define TASK_H
-#include "kernel.h"
+#include "list.h"
 #include "signal.h"
-#include "port.h"
 
 
-typedef void (*Taskfunction)(void **self);
+
+typedef void (* Taskfunction)(void * self);
 
 
 Class(TCB_struct)
 {
-    uint32_t        *topStack;
-    list_node       tasknode;
+    volatile uint32_t        *topStack;
     uint32_t        *startStack;
+    list_node       tasknode;
     Taskfunction    function_t;
+    uint8_t         priority;
+    uint8_t         TimeSlice;
 
     void (*getself_TCB)(TCB_struct* self);
     void (*getself_Task)(TCB_struct* self, Taskfunction function_t);
 
 };
+
+
 
 
 Class(thread_info)
@@ -31,12 +35,16 @@ Class(thread_info)
 
 Class(stack_struct)
 {
-    Stack_register Stack_register; 
+    //Stack_register Stack_register; 
     
     void (*StackInit)( uint32_t *topStack, 
                         TCB_struct *self,    //Maybe I can define two level pointer . I can change the *pointer 
                                         //point another TCB,then I will reduce the use of memory. 
                         Taskfunction function_t );
+    void (*Stack_pre)();
+    void (*Stack_next)();
+
+
 
 };
 
@@ -46,25 +54,55 @@ Class(stack_struct)
 Class(task_struct)
 {
     TCB_struct  TCB;
-    thread_info thread_info;
-    stack_struct *stack_struct;
-    signal_struct *signal_struct;
-
-
+    thread_info threadInfo;
+    stack_struct *stackStruct;
+    signal_struct *signalStruct;
 
     void (*TaskCreat)(  Taskfunction function_t,
                         const char *const task_name,
                         uint32_t *const Startstack,
                         const   uint32_t Stack_size,
-                        TCB_struct *self);
+                        TCB_struct const *self);
     
     void (*TaskInit)(   );
     void (*TaskReady)( );
-    
-    
-    
 
 };
+
+
+typedef TCB_struct* TaskHandle;
+
+
+
+//function that used by other source file
+void ALLlistInit();
+void lei_taskInit( void );
+
+
+//API
+void *TaskCreat(  Taskfunction function_t,
+                  const   uint16_t Stack_size,
+                  uint8_t priority,
+                  uint8_t TimeSlice,
+                  void * const pvParameters,
+                  TaskHandle * const self
+);
+
+void TaskDelay( const uint16_t TicksDelay );
+void TaskDelayTimeCheck( void );
+void vTaskSwitchContext( void );
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

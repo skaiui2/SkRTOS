@@ -1,62 +1,47 @@
-#include "semaphore.h"
-#include<stdint.h>
+//
+// Created by el on 2024/11/6.
+//
+
+#include "completion.h"
+#include <stdint.h>
 #include "heapmem.h"
 #include "port.h"
 #include "atomic.h"
 #include "task.h"
 
 
-
-Semaphore_struct *semaphore_creat( uint32_t SemaNumber,uint8_t type)
+completion *completion_creat()
 {
-    Semaphore_struct *xSemaphore = heap_malloc(sizeof (Semaphore_struct) );
-    *xSemaphore = (Semaphore_struct){
-            .type   = type,
-            .self   = NULL,
-            .SemaNumber = SemaNumber,
-            .AvailableNumber    = SemaNumber
+    completion *init_completion = heap_malloc(sizeof (completion) );
+    *init_completion = (completion){
+        .done = 0,
     };
-    listInit(&(xSemaphore->ReceiveList));
-    return xSemaphore;
+    listInit(&( init_completion->WaitList) );
+    return init_completion;
 }
 
 
-void semaphore_delete(Semaphore_struct *semaphore)
+
+void completion_delete(completion *completion)
 {
-    heap_free(semaphore);
+    heap_free(completion);
 }
-
-
 
 
 
 extern volatile uint8_t PendSVFlag;
 extern Clocks AbsoluteTime;
 extern TCB_struct *CurrentTCB;
-static void down_op(Semaphore_struct *semaphore)
-{
-#if SemOwner
-    semaphore->self =CurrentTCB;
-#endif
-
-    atomic_dec((uint32_t *)(&(semaphore->AvailableNumber)));
-    contextSwitchTrigger();
-
-
-}
-
-
-//the P operation
-uint8_t semaphore_down(Semaphore_struct *semaphore,uint32_t Ticks)  //get semaphore
+uint8_t wait_for_completion(completion *completion, uint32_t Ticks)
 {
     uint8_t RecordFlag;
     Clocks RecordClock = {0,0};
     uint32_t xre = xEnterCritical();
-    if( semaphore->AvailableNumber > 0){
-        down_op(semaphore);
+    if( completion->done > 0){
+        atomic_dec((uint32_t*)&(completion->done));
         xExitCritical(xre);
         return true;
-    }else if (semaphore->AvailableNumber == 0)
+    }else if (completion->done == 0)
     {
         if (Ticks == 0)
         {
@@ -71,7 +56,7 @@ uint8_t semaphore_down(Semaphore_struct *semaphore,uint32_t Ticks)  //get semaph
         }
     }
 
-    Insert_IPC(CurrentTCB,&(semaphore->ReceiveList));
+    Insert_IPC(CurrentTCB,&(completion->WaitList));
     TaskDelay(Ticks);
 
     RecordFlag = PendSVFlag;
@@ -87,7 +72,7 @@ uint8_t semaphore_down(Semaphore_struct *semaphore,uint32_t Ticks)  //get semaph
     //check for timeout
     if ((AbsoluteTime.two_levelTime == RecordClock.two_levelTime) && (AbsoluteTime.one_levelTime <= RecordClock.one_levelTime))
     {
-        down_op(semaphore);
+        atomic_dec((uint32_t*)&(completion->done));
         xExitCritical(xReturn);
         return true;
     }
@@ -95,38 +80,45 @@ uint8_t semaphore_down(Semaphore_struct *semaphore,uint32_t Ticks)  //get semaph
 
 }
 
-
-
-
-static void up_op(Semaphore_struct *semaphore)
+static void up_op(completion *completion)
 {
-    TCB_struct *ReceiveTask;
+    TCB_struct *WaitTask;
     //Wake up the highest priority task in the receiving list
-    ReceiveTask =  container_of(semaphore->ReceiveList.tail, TCB_struct, IPC_node);
-    DelaylistRemove(ReceiveTask);//!!!timer
-    Remove_IPC(ReceiveTask);
-    ReadyListAdd(ReceiveTask);
-
+    WaitTask =  container_of(completion->WaitList.tail, TCB_struct, IPC_node);
+    DelaylistRemove(WaitTask);//!!!timer
+    Remove_IPC(WaitTask);
+    ReadyListAdd(WaitTask);
 }
 
-
-// the V operation
-uint8_t semaphore_up( Semaphore_struct *semaphore)
+uint8_t complete(struct completion *completion)
 {
     uint32_t xre = xEnterCritical();
-    if (semaphore->ReceiveList.count != 0){
-        up_op(semaphore);
+    if (completion->WaitList.count != 0){
+        up_op(completion);
     }
-#if SemOwner
-    semaphore->self = NULL;
-#endif
-    atomic_inc((uint32_t *)(&(semaphore->AvailableNumber)));
-    //
+
+    atomic_inc((uint32_t *)(&(completion->done)));
+    
     contextSwitchTrigger();
     xExitCritical(xre);
 
     return true;
 }
 
+uint8_t complete_all(struct completion *completion)
+{
+    uint32_t xre = xEnterCritical();
+    if (completion->WaitList.count != 0){
+        for(uint8_t i = 0;i < completion->WaitList.count; i++){
+            up_op(completion);
+        }
+    }
 
+    atomic_inc((uint32_t *)(&(completion->done)));
+
+    contextSwitchTrigger();
+    xExitCritical(xre);
+
+    return true;
+}
 

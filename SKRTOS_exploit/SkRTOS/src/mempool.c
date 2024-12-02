@@ -1,9 +1,5 @@
 #include "mempool.h"
-#include <stddef.h>
-#include <stdint.h>
-#include "config.h"
-
-
+#include "kernel.h"
 
 
 
@@ -42,29 +38,21 @@ void mempool_init(poolhead *thepool,void* arraystart,uint32_t allsize)
 
     end_heap  = start_heap + (uint32_t)allsize ;
 
-    //end_heap  = start_heap + (uint32_t)700 ;
-
-    //printf("end_heap:%d\n",end_heap);
     
     if( (end_heap & aligment_byte) != 0){
         end_heap += aligment_byte ;
         end_heap &= ~aligment_byte;
     }
-    //printf("end_heap:%d\n",end_heap);
-    
-    thepool->tail = (poolnode*)6296448;
-    //thepool->tail = (poolnode*)6296248;
+        
 
-    //thepool->tail = (poolnode*)end_heap;
+    thepool->tail = (poolnode*)end_heap;
 
     thepool->tail->used = 0;
     thepool->tail->next =NULL;
 
-    
     firstnode = (poolnode*)start_heap;
     firstnode->next = thepool->tail;
     firstnode->used =0;
-    
     
 }
 
@@ -79,21 +67,25 @@ void pool_apart(poolhead *thepool, uint8_t amount,size_t apartsize)
     size_t aligmentrequisize;
 
     apartsize += heapstructSize;
+
     if((apartsize & aligment_byte) != 0x00)
     {
-        aligmentrequisize = aligment_byte - (apartsize & aligment_byte);
+        aligmentrequisize = aligment_byte + 1 - (apartsize & aligment_byte);
         apartsize += aligmentrequisize;
     }
-
     //taskSUS
 
     prevnode = thepool->head.next;
+   
+    
     
     while(amount != 0)
     {
-        newnode = (poolnode*)(((uint8_t*)prevnode) + apartsize);
-        newnode-> used = (size_t)0 ;
-        prevnode-> next = newnode;
+        newnode = (poolnode*)(((size_t)prevnode) + apartsize);
+       
+        newnode->used = 0;
+        prevnode->next = newnode;
+    
         prevnode = newnode;
 
         amount--;
@@ -110,11 +102,10 @@ void pool_apart(poolhead *thepool, uint8_t amount,size_t apartsize)
 void mempool_creat(poolhead *thepool,void* arraystart,uint16_t size,uint8_t amount)
 {
     uint32_t allsize = (uint32_t)amount *  ( (uint32_t)size + (uint32_t)heapstructSize);
-
     mempool_init(thepool,arraystart,allsize);
 
     pool_apart(thepool,amount,size);
-    
+   
 
 }
 
@@ -146,8 +137,7 @@ void *mempool_apl(poolhead *thepool)
 void mempool_free(void *xret)
 {
     poolnode *FreeBlock;
-    void *xFree ;
-    xFree = (void*)( xret - (void*)heapstructSize);
+    void *xFree = (void*)xret - (void*)heapstructSize;
     
     FreeBlock = (void*)xFree;
 
@@ -157,25 +147,19 @@ void mempool_free(void *xret)
 
 /*every poolnode plus heapstruct(24) eqaul  pool1 array size*/
 
-
 /*
-*
-*
-uint8_t pool1[800];
+
+uint8_t pool1[900];
 poolhead onepool;
 
 
 int main()
 {
-    printf("statr: %d\n",pool1);
-    
-    mempool_creat( &onepool,pool1, 56,10);
-
+    mempool_creat( &onepool,pool1, 79,10);
     void *a = mempool_apl(&onepool);
     mempool_free(a);
-    
    return 0;
 }
-*
-*
 */
+
+
